@@ -9,6 +9,8 @@ df0 <- read_csv("https://raw.githubusercontent.com/alex/nyt-2020-election-scrape
 # select the columns and subset the rows of the state
 # Alaska (EV: 3), Arizona (EV: 11), Georgia (EV: 16), Nevada (EV: 6), 	North Carolina (EV: 15)
 select_state <- "Pennsylvania (EV: 20)"
+
+# 1.y = votes
 df0 %>% 
   select(state, timestamp, 
          leading_candidate_name, 
@@ -50,3 +52,41 @@ p <- ggplot(all, aes(x=timestamp,
   geom_line()
 p + ggtitle(label = select_state,
             subtitle = "2020 Presidential Election Results changed over time")
+
+# 2.y = percentage
+# calculate the total votes
+df0_selected_total <- df0_selected %>%
+  mutate(total = leading_candidate_votes + trailing_candidate_votes) %>% 
+  select(timestamp, total)
+
+# subset biden
+all_biden <- all %>% 
+  select(timestamp, name, votes) %>% 
+  filter(name == 'Biden')
+
+# add percentage
+all_biden_percentage <- left_join(df0_selected_total, all_biden, by = c('timestamp')) %>% 
+  mutate(percentage = votes/total*100)
+
+# subset trump
+all_trump <- all %>% 
+  select(timestamp, name, votes) %>% 
+  filter(name == 'Trump')
+
+# add percentage
+all_trump_percentage <- left_join(df0_selected_total, all_trump, by = c('timestamp')) %>% 
+  mutate(percentage = votes/total*100)
+
+# bind biden and trump
+all_percentage <- bind_rows(all_biden_percentage, all_trump_percentage)
+
+# create a line chart
+p <- ggplot(all_percentage, aes(x=timestamp, 
+                     y=percentage, 
+                     group = name,
+                     color=name)) +
+  geom_line()
+p + ggtitle(label = select_state,
+            subtitle = "2020 Presidential Election Results (percentage) changed over time")
+
+
